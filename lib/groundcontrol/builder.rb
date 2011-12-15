@@ -90,7 +90,7 @@ module GroundControl
       cucumber_output = `cd #{@build_directory}; bundle exec rake cucumber`
       cucumber_status = $?.to_i
       
-      Process.kill "QUIT", screen_pid
+      Process.kill "TERM", screen_pid
       
       return cucumber_status
     end
