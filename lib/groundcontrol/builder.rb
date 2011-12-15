@@ -7,7 +7,7 @@ require 'geckoboard-push'
 
 module GroundControl
   
-  class Build
+  class Builder
     
     def initialize(project_name, config)
       @project_name = project_name
@@ -19,7 +19,7 @@ module GroundControl
     end
   
     def build
-      prepare_repository_for_build()
+      @repository = prepare_repository_for_build()
       
       notify_campfire_of_build_started(@project_name, @repository)
       
@@ -92,20 +92,18 @@ module GroundControl
       
       Process.kill "QUIT", screen_pid
       
-      
       return cucumber_status
     end
     
     def run_tests_and_report()
       testunit_return_code = run_unit_tests()
-      #cucumber_return_code = run_cucumber_tests()
-      cucumber_return_code = 345
+      cucumber_return_code = run_cucumber_tests()
       
       return BuildReport.new(@project_name, @repository.head.name, testunit_return_code == 0, cucumber_return_code == 0, @repository.commits.first)
     end
 
     def clone_repository
-      Git.clone(@git_repo, @build_directory)
+      Git.clone(@git_url, @build_directory)
       return Grit::Repo.new(@build_directory)
     end
 

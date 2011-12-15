@@ -12,7 +12,7 @@ module GroundControl
     
       repositories.each do |project, config|
         
-        build_task = GroundControl::Build.new(project, config)
+        build_task = GroundControl::Builder.new(project, config)
         build_task.build
       end
     
