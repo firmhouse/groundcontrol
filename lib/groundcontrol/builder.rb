@@ -12,30 +12,35 @@ module GroundControl
     def initialize(project_name, config)
       @project_name = project_name
       @config = config
+      @workspace = File.join("builds", project_name)
+      @build_directory = File.join(@workspace, "build")
+      @reports_directory = File.join(@workspace, "reports")
+      @git_url = @config['git']
     end
   
     def build
-      @git_repo = @config['git']
+      prepare_repository_for_build()
       
-      setup_workspace()
-      
-      @repository = setup_build_directory()
-      
-      last_commit_author = @repository.commits.first.author
-      
-      notify_campfire_of_build_started(@project_name, @repository.head.name, last_commit_author.name)
-      
-      install_environment()
+      notify_campfire_of_build_started(@project_name, @repository)
       
       test_report = run_tests_and_report()
       
-      notify_geckoboard_of_build_result(test_report)
-      notify_campfire_of_build_result(test_report, @project_name, @repository.head.name, last_commit_author.name)
+      notify_campfire_of_build_result(test_report, @project_name, @repository)
       
       return test_report
     end
     
     private
+    
+    def prepare_repository_for_build
+      clear_and_create_workspace()
+      
+      git_repository = clone_repository()
+      
+      install_environment()
+      
+      return git_repository
+    end
     
     def start_virtual_screen
       ENV['DISPLAY'] = ":5"
@@ -55,16 +60,18 @@ module GroundControl
       end
     end
     
-    def notify_campfire_of_build_result(test_report, project_name, branch_name, author_name)
+    def notify_campfire_of_build_result(test_report, project_name, repository)
       campfire_config = @config['campfire']
 
       campfire = Tinder::Campfire.new campfire_config['subdomain'], :token => campfire_config['token']
       room = campfire.find_room_by_name(campfire_config['room'])
       
+      last_commit = repository.commits.first
+      
       if test_report.success?
-        room.speak "Build SUCCEEDED. +1 for #{author_name}."
+        room.speak "Build SUCCEEDED. +1 for #{last_commit.author.name}."
       else
-        room.speak "Build FAILED for #{project_name}/#{branch_name} #{@config['github']}/commit/#{test_report.commit.sha}. #{author_name} is definitely not the best developer."
+        room.speak "Build FAILED for #{project_name}/#{repository.head.name} #{@config['github']}/commit/#{test_report.commit.sha}. #{last_commit.author.name} is definitely not the best developer."
       end
     end
     
@@ -97,28 +104,27 @@ module GroundControl
       return BuildReport.new(@project_name, @repository.head.name, testunit_return_code == 0, cucumber_return_code == 0, @repository.commits.first)
     end
 
-    def setup_build_directory
+    def clone_repository
       Git.clone(@git_repo, @build_directory)
       return Grit::Repo.new(@build_directory)
     end
 
-    def setup_workspace
-      FileUtils.rm_rf File.join("builds/", @project_name)
-
-      @build_directory = File.join("builds/", @project_name, "build")
-      @reports_directory = File.join("builds/", @project_name, "reports")
+    def clear_and_create_workspace
+      FileUtils.rm_rf @workspace
 
       FileUtils.mkdir_p(@build_directory)
       FileUtils.mkdir_p(@reports_directory)
     end
 
-    def notify_campfire_of_build_started(project_name, branch_name, author_name)
+    def notify_campfire_of_build_started(project_name, repository)
       campfire_config = @config['campfire']
 
       campfire = Tinder::Campfire.new campfire_config['subdomain'], :token => campfire_config['token']
       room = campfire.find_room_by_name(campfire_config['room'])
+      
+      last_commit = repository.commits.first
 
-      room.speak "Build started for #{project_name}/#{branch_name} by #{author_name}."
+      room.speak "Build started for #{project_name}/#{repository.head.name} by #{last_commit.author.name}."
     end
 
     def initialize_rvm
