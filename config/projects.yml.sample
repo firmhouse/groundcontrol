@@ -1,0 +1,8 @@
+---
+projects:
+  vacustock:
+    git: git@github.com:michiels/vacustock.git
+    campfire:
+      subdomain: firmhouse
+      token: 
+      room: 
