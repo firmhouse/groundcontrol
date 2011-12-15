@@ -50,16 +50,6 @@ module GroundControl
       end
     end
     
-    def notify_geckoboard_of_build_result(report)
-      Geckoboard::Push.api_key = @config['geckoboard']['api_key']
-      widget = Geckoboard::Push.new(@config['geckoboard']['widget'])
-      if report.failed?
-        widget.text([{:text => "#{report.commit.author.name} is a loser and broke the build for #{report.project_name}.", :type => :alert}])
-      else
-        widget.text([{:text => "#{report.commit.author.name} is awesome and made some well-crafted code for #{report.project_name}"}])
-      end
-    end
-    
     def notify_campfire_of_build_result(test_report, project_name, repository)
       campfire_config = @config['campfire']
 
