@@ -19,49 +19,22 @@ module GroundControl
     end
   
     def build
-      @repository = prepare_repository_for_build()
+      create_workspace()
       
-      notify_campfire_of_build_started(@project_name, @repository)
+      clone_repository()
       
-      test_report = run_tests_and_report()
+      prepare_build_environment()
       
-      notify_campfire_of_build_result(test_report, @project_name, @repository)
-      
-      return test_report
+      run_tests_and_report()
     end
     
     private
-    
-    def prepare_repository_for_build
-      clear_and_create_workspace()
-      
-      git_repository = clone_repository()
-      
-      install_environment()
-      
-      return git_repository
-    end
     
     def start_virtual_screen
       ENV['DISPLAY'] = ":5"
       
       xvfb_pid = fork do
         exec 'Xvfb :5 -ac -screen 0 1024x768x8'
-      end
-    end
-    
-    def notify_campfire_of_build_result(test_report, project_name, repository)
-      campfire_config = @config['campfire']
-
-      campfire = Tinder::Campfire.new campfire_config['subdomain'], :token => campfire_config['token']
-      room = campfire.find_room_by_name(campfire_config['room'])
-      
-      last_commit = repository.commits.first
-      
-      if test_report.success?
-        room.speak "Build SUCCEEDED. +1 for #{last_commit.author.name}."
-      else
-        room.speak "Build FAILED for #{project_name}/#{repository.head.name} #{@config['github']}/commit/#{test_report.commit.sha}. #{last_commit.author.name} is definitely not the best developer."
       end
     end
     
@@ -94,25 +67,14 @@ module GroundControl
 
     def clone_repository
       Git.clone(@git_url, @build_directory)
-      return Grit::Repo.new(@build_directory)
+      @repository = Grit::Repo.new(@build_directory)
     end
 
-    def clear_and_create_workspace
+    def create_workspace
       FileUtils.rm_rf @workspace
 
       FileUtils.mkdir_p(@build_directory)
       FileUtils.mkdir_p(@reports_directory)
-    end
-
-    def notify_campfire_of_build_started(project_name, repository)
-      campfire_config = @config['campfire']
-
-      campfire = Tinder::Campfire.new campfire_config['subdomain'], :token => campfire_config['token']
-      room = campfire.find_room_by_name(campfire_config['room'])
-      
-      last_commit = repository.commits.first
-
-      room.speak "Build started for #{project_name}/#{repository.head.name} by #{last_commit.author.name}."
     end
 
     def initialize_rvm
@@ -171,7 +133,7 @@ EOF
       File.open("#{@build_directory}/config/sphinx.yml", 'w') { |f| f.write(sphinx_config) }
     end
 
-    def install_environment    
+    def prepare_build_environment    
       ENV['RAILS_ENV'] = "test"
 
       initialize_rvm()

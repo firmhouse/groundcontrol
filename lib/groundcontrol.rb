@@ -1,2 +1,2 @@
-require "lib/groundcontrol/builder"
-require "lib/groundcontrol/build_report"
+require "groundcontrol/builder"
+require "groundcontrol/build_report"
