@@ -27,7 +27,7 @@ module GroundControl
       
       test_report = run_tests_and_report()
       
-      notify_campfire_of_build_result(test_report, project_name, @repository)
+      notify_campfire_of_build_result(test_report, @project_name, @repository)
     end
     
     private
