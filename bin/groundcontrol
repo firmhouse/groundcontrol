@@ -1,6 +1,6 @@
 require 'rubygems'
 require 'yaml'
-require 'lib/groundcontrol'
+require 'groundcontrol'
 
 module GroundControl
 
