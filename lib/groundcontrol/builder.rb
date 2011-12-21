@@ -112,6 +112,7 @@ module GroundControl
     end
 
     def install_bundler_gems()
+      ENV['BUNDLE_GEMFILE'] = File.join(@build_directory, 'Gemfile')
       `cd #{@build_directory}; bundle install --without production`
     end
 
