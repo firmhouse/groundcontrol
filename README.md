@@ -1,6 +1,6 @@
 # GroundControl
 
-* GroundControl is a test runner / builder for your Rails apps. *
+GroundControl is a test runner / builder for your Rails apps.
 
 ## Usage / Hacking
 
