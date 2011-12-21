@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite errors="0" assertions="2" tests="2" skipped="0" time="0.329488" name="DeliveryAssigmentTest" failures="0">
+  <testcase assertions="1" time="0.133832" name="test_first_test">
+  </testcase>
+  <testcase assertions="1" time="0.195365" name="test_to_csv_should_work_for_an_delivery_assignment_with_the_Transporter_GLS_selected">
+  </testcase>
+  <system-out>
+  </system-out>
+  <system-err>
+  </system-err>
+</testsuite>

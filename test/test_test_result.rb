@@ -3,7 +3,15 @@ require 'groundcontrol'
 
 module GroundControl
   
-  class TestResult < Test::Unit::TestCase
+  class TestResultTest < Test::Unit::TestCase
+    
+    def test_read_multiple_from_directory
+      directory_with_test_files = File.expand_path("test/junit_results/")
+      
+      tests = GroundControl::TestResult.read_from_directory(directory_with_test_files)
+      
+      assert_equal 3, tests.size
+    end
     
     def test_read_multiple_from_xml
       suite_xml = <<EOF

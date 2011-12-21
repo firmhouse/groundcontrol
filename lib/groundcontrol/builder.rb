@@ -3,7 +3,6 @@ require 'git'
 require 'tinder'
 require 'grit'
 require 'net/http'
-require 'geckoboard-push'
 
 module GroundControl
   
@@ -12,7 +11,8 @@ module GroundControl
     def initialize(project_name, config)
       @project_name = project_name
       @config = config
-      @workspace = File.join("builds", project_name)
+      @workspace = File.expand_path(File.join("builds", project_name))
+      puts "Workspace: #{@workspace}"
       @build_directory = File.join(@workspace, "build")
       @reports_directory = File.join(@workspace, "reports")
       @git_url = @config['git']
@@ -28,6 +28,8 @@ module GroundControl
       test_report = run_tests_and_report()
       
       notify_campfire_of_build_result(test_report, @project_name, @repository)
+      
+      return test_report
     end
     
     private
@@ -79,7 +81,17 @@ module GroundControl
       testunit_return_code = run_unit_tests()
       cucumber_return_code = run_cucumber_tests()
       
-      return BuildReport.new(@project_name, @repository.head.name, testunit_return_code == 0, cucumber_return_code == 0, @repository.commits.first)
+      report = BuildReport.new(
+        @project_name, 
+        @repository.head.name, 
+        testunit_return_code == 0, 
+        cucumber_return_code == 0, 
+        @repository.commits.first)
+        
+      report.test_results += TestResult.read_from_directory(File.join(@reports_directory, "features"))
+      report.test_results += TestResult.read_from_directory(File.join(@reports_directory, "testunit"))
+      
+      return report
     end
 
     def clone_repository

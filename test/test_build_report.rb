@@ -5,8 +5,8 @@ module GroundControl
   
   class BuildReportTest < Test::Unit::TestCase
     
-    def test_our_test_work
-      assert true
+    def test_initialize_reads_result_files
+      
     end
     
   end
