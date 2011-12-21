@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 require 'rubygems'
 require 'yaml'
 require 'groundcontrol'
@@ -13,7 +15,11 @@ module GroundControl
       repositories.each do |project, config|
         
         build_task = GroundControl::Builder.new(project, config)
-        build_task.build
+        build_report = build_task.build
+        
+        build_report.test_results.each do |test_result|
+          puts (test_result.failed? ? "FAIL" : "SUCCESS") + ": " + test_result.name
+        end
       end
     
     end
