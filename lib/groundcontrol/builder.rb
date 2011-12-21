@@ -107,12 +107,12 @@ module GroundControl
     end
 
     def initialize_rvm
-      system "cd #{@build_directory}; rvm rvmrc trust"
-      system "cd #{@build_directory}; rvm reload"
+      `cd #{@build_directory}; rvm rvmrc trust`
+      `cd #{@build_directory}; rvm reload`
     end
 
     def install_bundler_gems()
-      system "cd #{@build_directory}; bundle install --without production"
+      `cd #{@build_directory}; bundle install --without production`
     end
 
     def inject_ci_reporter()
