@@ -19,15 +19,14 @@ module GroundControl
     end
   
     def build
+      
       create_workspace()
       
       clone_repository()
       
       prepare_build_environment()
-      
+    
       test_report = run_tests_and_report()
-      
-      notify_campfire_of_build_result(test_report, @project_name, @repository)
       
       return test_report
     end
@@ -60,32 +59,30 @@ module GroundControl
     def run_unit_tests()
       ENV['CI_REPORTS'] = "../reports/testunit"
       
-      test_output = `cd #{@build_directory}; bundle exec rake ci:setup:testunit test`
-      return $?.to_i
+      test_status = 1
+      
+      `cd #{@build_directory}; rvm rvmrc load; source \"/Users/michiel/.rvm/scripts/rvm\"; bundle exec rake ci:setup:testunit test`
     end
     
     def run_cucumber_tests()
       screen_pid = start_virtual_screen()
       
+      cucumber_status = 1
+      
       ENV['CUCUMBER_OPTS'] = "--format junit --out ../reports/features"
-
-      cucumber_output = `cd #{@build_directory}; bundle exec rake cucumber`
-      cucumber_status = $?.to_i
+      
+      `cd #{@build_directory}; rvm rvmrc load; source \"/Users/michiel/.rvm/scripts/rvm\"; bundle exec rake cucumber`
       
       Process.kill "TERM", screen_pid
-      
-      return cucumber_status
     end
     
     def run_tests_and_report()
-      testunit_return_code = run_unit_tests()
-      cucumber_return_code = run_cucumber_tests()
+      run_unit_tests()
+      run_cucumber_tests()
       
       report = BuildReport.new(
         @project_name, 
         @repository.head.name, 
-        testunit_return_code == 0, 
-        cucumber_return_code == 0, 
         @repository.commits.first)
         
       report.test_results += TestResult.read_from_directory(File.join(@reports_directory, "features"))
@@ -107,22 +104,14 @@ module GroundControl
     end
 
     def initialize_rvm
-      `cd #{@build_directory}; rvm rvmrc trust`
-      `cd #{@build_directory}; rvm reload`
+      puts "Reloading RVM..."
+      puts `cd #{@build_directory}; rvm rvmrc trust #{@build_directory}`
     end
 
     def install_bundler_gems()
-      ENV['BUNDLE_GEMFILE'] = File.join(@build_directory, 'Gemfile')
-      `cd #{@build_directory}; bundle install --without production`
-    end
-
-    def inject_ci_reporter()
-      doc = <<EOF
-require 'rubygems'
-require 'ci/reporter/rake/test_unit' # use this if you're using Test::Unit
-EOF
-
-      File.open("#{@build_directory}/lib/tasks/ci_reporter.rake", 'w') { |f| f.write(doc) }
+      puts "Installing bundle..."
+      gemfile_location = File.join(@build_directory, "Gemfile")
+      IO.popen("cd #{@build_directory}; rvm rvmrc load; source \"/Users/michiel/.rvm/scripts/rvm\"; bundle install --without production", "r") { |io| puts io.read }
     end
 
     def inject_database_config()
@@ -146,7 +135,7 @@ EOF
     end
 
     def load_empty_schema()
-      system "cd #{@build_directory}; bundle exec rake db:schema:load"
+      puts `cd #{@build_directory}; rvm rvmrc load; source \"/Users/michiel/.rvm/scripts/rvm\"; bundle exec rake db:schema:load`
     end
 
     def setup_database()
@@ -161,6 +150,14 @@ test:
 EOF
 
       File.open("#{@build_directory}/config/sphinx.yml", 'w') { |f| f.write(sphinx_config) }
+    end
+    
+    def inject_ci_reporter
+      doc = <<EOF
+      require 'ci/reporter/rake/test_unit' # use this if you're using Test::Unit
+EOF
+
+      File.open("#{@build_directory}/lib/tasks/ci_reporter.rake", 'w') { |f| f.write(doc) }
     end
 
     def prepare_build_environment    
