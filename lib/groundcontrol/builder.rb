@@ -44,7 +44,7 @@ module GroundControl
       
       test_status = 1
       
-      `cd #{@build_directory}; rvm rvmrc load; source \"~/.rvm/scripts/rvm\"; bundle exec rake ci:setup:testunit test`
+      `cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; bundle exec rake ci:setup:testunit test`
     end
     
     def run_cucumber_tests()
@@ -54,7 +54,7 @@ module GroundControl
       
       ENV['CUCUMBER_OPTS'] = "--format junit --out ../reports/features"
       
-      `cd #{@build_directory}; rvm rvmrc load; source \"~/.rvm/scripts/rvm\"; bundle exec rake cucumber`
+      `cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; bundle exec rake cucumber`
       
       Process.kill "TERM", screen_pid
     end
@@ -94,7 +94,7 @@ module GroundControl
     def install_bundler_gems()
       puts "Installing bundle..."
       gemfile_location = File.join(@build_directory, "Gemfile")
-      IO.popen("cd #{@build_directory}; rvm rvmrc load; source \"~/.rvm/scripts/rvm\"; bundle install --without production", "r") { |io| puts io.read }
+      IO.popen("cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; bundle install --without production", "r") { |io| puts io.read }
     end
 
     def inject_database_config()
@@ -118,7 +118,7 @@ EOF
     end
 
     def load_empty_schema()
-      puts `cd #{@build_directory}; rvm rvmrc load; source \"~/.rvm/scripts/rvm\"; bundle exec rake db:schema:load`
+      puts `cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; bundle exec rake db:schema:load`
     end
 
     def setup_database()
