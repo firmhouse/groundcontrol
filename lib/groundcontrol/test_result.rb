@@ -31,7 +31,7 @@ module GroundControl
       
       doc.xpath('//testcase').each do |testcase|
         failure = testcase.xpath('//failure')
-        if failure.blank?
+        if failure.empty?
           tests << TestResult.new(testcase['name'])
         else
           tests << TestResult.new(testcase['name'], failure.first.content)

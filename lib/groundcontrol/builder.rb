@@ -1,6 +1,5 @@
 require 'rubygems'
 require 'git'
-require 'tinder'
 require 'grit'
 require 'net/http'
 
@@ -31,21 +30,6 @@ module GroundControl
     end
     
     private
-    
-    def notify_campfire_of_build_result(test_report, project_name, repository)
-      campfire_config = @config['campfire']
- 
-      campfire = Tinder::Campfire.new campfire_config['subdomain'], :token => campfire_config['token']
-      room = campfire.find_room_by_name(campfire_config['room'])
-      
-      last_commit = repository.commits.first
-      
-      if test_report.success?
-        room.speak "Build SUCCEEDED. +1 for #{last_commit.author.name}."
-      else
-        room.speak "Build FAILED for #{project_name}/#{repository.head.name} #{@config['github']}/commit/#{test_report.commit.sha}. #{last_commit.author.name} is definitely not the best developer."
-      end
-    end
     
     def start_virtual_screen
       ENV['DISPLAY'] = ":5"

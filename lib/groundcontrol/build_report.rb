@@ -13,11 +13,12 @@ module GroundControl
     end
     
     def success?
-      testunit_success && cucumber_success
+      return !failed?
     end
     
     def failed?
-      !success?
+      return true if @test_results.select { |t| t.failed? }.size > 0
+      return false
     end
     
   end
