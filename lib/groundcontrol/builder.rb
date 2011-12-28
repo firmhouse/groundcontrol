@@ -27,7 +27,7 @@ module GroundControl
       create_workspace
       clone_repository
       prepare_build_environment
-      run_tests_and_report()
+      run_tests_and_report
     end
     
     private
@@ -87,13 +87,15 @@ module GroundControl
 
     def clone_repository
       grit = Grit::Git.new('/tmp/grit-fill')
-      grit.clone({:quiet => false, :verbose => false, :progress => false}, @git_url, @build_directory)
+      grit.clone({:quiet => false, :verbose => true, :progress => true}, @git_url, @build_directory)
+
       @repository = Grit::Repo.new(@build_directory)
     end
 
     def create_workspace
       FileUtils.rm_rf @workspace
 
+      FileUtils.mkdir_p(@workspace)
       FileUtils.mkdir_p(@build_directory)
       FileUtils.mkdir_p(@reports_directory)
     end
