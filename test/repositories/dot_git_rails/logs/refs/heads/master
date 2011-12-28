@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 8f2c0f5d89d1140c0feeb314f3af865ca3ef4f77 Michiel Sikkes <michiel.sikkes@gmail.com> 1324987418 +0100	commit (initial): Initial commit
+8f2c0f5d89d1140c0feeb314f3af865ca3ef4f77 75f562f38969c360af38cf62dc5c995fc8517727 Michiel Sikkes <michiel.sikkes@gmail.com> 1324987637 +0100	commit: added rvmrc
+75f562f38969c360af38cf62dc5c995fc8517727 f1ef334e13e08a77c10b94c9043878cc42a59a98 Michiel Sikkes <michiel.sikkes@gmail.com> 1324989534 +0100	commit: Added Gemfile.lock
+f1ef334e13e08a77c10b94c9043878cc42a59a98 c4986cddad0beede54ae9c11c0b76bbde6e608e8 Michiel Sikkes <michiel.sikkes@gmail.com> 1324989800 +0100	commit: Added a test model and generate a schema
+c4986cddad0beede54ae9c11c0b76bbde6e608e8 78f70e0c187b9507079779e65d0abb450b779783 Michiel Sikkes <michiel.sikkes@gmail.com> 1324990094 +0100	commit: Added a test model and generate a schema
+78f70e0c187b9507079779e65d0abb450b779783 89f05e0b1e09800e3d73c551a3a0662fd2c758f7 Michiel Sikkes <michiel.sikkes@gmail.com> 1324990102 +0100	commit (amend): Added the mysql2 gem to the gemfile
+89f05e0b1e09800e3d73c551a3a0662fd2c758f7 e59d9560d2ffc0aad245223afca158605bcfb7f8 Michiel Sikkes <michiel.sikkes@gmail.com> 1324990121 +0100	commit: Updated Gemfile.lock
+e59d9560d2ffc0aad245223afca158605bcfb7f8 34dadcc078005e2a05b70b66225d3e6215f99ce1 Michiel Sikkes <michiel.sikkes@gmail.com> 1324993438 +0100	commit: Added ci_reporter gem
