@@ -1,32 +1,33 @@
 require 'rubygems'
 require 'git'
 require 'grit'
+require 'open3'
 require 'net/http'
 
 module GroundControl
   
   class Builder
     
-    def initialize(project_name, config)
+    attr_reader :output
+    
+    def initialize(project_name, config)      
       @project_name = project_name
       @config = config
+      
       @workspace = File.expand_path(File.join("builds", project_name))
-      puts "Workspace: #{@workspace}"
+      
       @build_directory = File.join(@workspace, "build")
       @reports_directory = File.join(@workspace, "reports")
       @git_url = @config['git']
+      
+      @output = ""
     end
   
     def build
-      create_workspace()
-      
-      clone_repository()
-      
-      prepare_build_environment()
-    
-      test_report = run_tests_and_report()
-      
-      return test_report
+      create_workspace
+      clone_repository
+      prepare_build_environment
+      run_tests_and_report()
     end
     
     private
@@ -35,26 +36,31 @@ module GroundControl
       ENV['DISPLAY'] = ":5"
       
       xvfb_pid = fork do
-        exec 'Xvfb :5 -ac -screen 0 1024x768x8'
+        Open3.popen3('Xvfb :5 -ac -screen 0 1024x768x8') do |input, output, err, thread|
+          @output += output.read
+          @output += err.read
+        end
       end
     end
     
     def run_unit_tests()
-      ENV['CI_REPORTS'] = "../reports/testunit"
       
-      test_status = 1
+      Open3.popen3("cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; bundle exec rake ci:setup:testunit test") do |input, output, err, thread| 
+        @output += output.read 
+        @output += err.read
+      end
       
-      `cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; bundle exec rake ci:setup:testunit test`
     end
     
     def run_cucumber_tests()
       screen_pid = start_virtual_screen()
       
-      cucumber_status = 1
-      
       ENV['CUCUMBER_OPTS'] = "--format junit --out ../reports/features"
       
-      `cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; bundle exec rake cucumber`
+      Open3.popen3("cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; bundle exec rake cucumber") do |input, output, err, thread| 
+        @output += output.read
+        @output += err.read
+      end
       
       Process.kill "TERM", screen_pid
     end
@@ -68,14 +74,20 @@ module GroundControl
         @repository.head.name, 
         @repository.commits.first)
         
-      report.test_results += TestResult.read_from_directory(File.join(@reports_directory, "features"))
-      report.test_results += TestResult.read_from_directory(File.join(@reports_directory, "testunit"))
+      if File.exists?(File.join(@reports_directory, "features"))
+        report.test_results += TestResult.read_from_directory(File.join(@reports_directory, "features"))
+      end
+
+      if File.exists?(File.join(@build_directory, "test", "reports"))
+        report.test_results += TestResult.read_from_directory(File.join(@build_directory, "test", "reports"))
+      end
       
       return report
     end
 
     def clone_repository
-      Git.clone(@git_url, @build_directory)
+      grit = Grit::Git.new('/tmp/grit-fill')
+      grit.clone({:quiet => false, :verbose => false, :progress => false}, @git_url, @build_directory)
       @repository = Grit::Repo.new(@build_directory)
     end
 
@@ -87,14 +99,11 @@ module GroundControl
     end
 
     def initialize_rvm
-      puts "Reloading RVM..."
-      puts `cd #{@build_directory}; rvm rvmrc trust #{@build_directory}`
+      IO.popen("cd #{@build_directory}; rvm rvmrc trust #{@build_directory}") { |io| @output += io.read }
     end
 
     def install_bundler_gems()
-      puts "Installing bundle..."
-      gemfile_location = File.join(@build_directory, "Gemfile")
-      IO.popen("cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; bundle install --without production", "r") { |io| puts io.read }
+      IO.popen("cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; bundle install --without production", "r") { |io| @output += io.read }
     end
 
     def inject_database_config()
@@ -109,8 +118,8 @@ test: &test
   username: root
   password:
 
-  cucumber:
-    <<: *test
+cucumber:
+  <<: *test
 EOF
 
       File.open("#{@build_directory}/config/database.yml", 'w') { |f| f.write(database) }
@@ -118,7 +127,7 @@ EOF
     end
 
     def load_empty_schema()
-      puts `cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; bundle exec rake db:schema:load`
+      IO.popen("cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; bundle exec rake db:schema:load") { |io| @output += io.read }
     end
 
     def setup_database()
@@ -136,11 +145,11 @@ EOF
     end
     
     def inject_ci_reporter
-      doc = <<EOF
-      require 'ci/reporter/rake/test_unit' # use this if you're using Test::Unit
-EOF
+      ENV['CI_REPORTS'] = File.join(@reports_directory, "testunit")
+      
+      ci_reporter_config = "require 'ci/reporter/rake/test_unit'"
 
-      File.open("#{@build_directory}/lib/tasks/ci_reporter.rake", 'w') { |f| f.write(doc) }
+      File.open("#{@build_directory}/lib/tasks/ci_reporter.rake", 'w') { |f| f.write(ci_reporter_config) }
     end
 
     def prepare_build_environment    
@@ -148,9 +157,10 @@ EOF
 
       initialize_rvm()
       install_bundler_gems()
-      inject_ci_reporter()
       
       setup_database()
+      
+      inject_ci_reporter()
       inject_thinking_sphinx_config()
     end
   

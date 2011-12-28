@@ -3,7 +3,7 @@ module GroundControl
   class BuildReport
     
     attr_reader :project_name, :branch, :commit
-    attr_accessor :test_results
+    attr_accessor :test_results, :output
     
     def initialize(project_name, branch, commit)
       @project_name = project_name
