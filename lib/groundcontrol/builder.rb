@@ -45,9 +45,16 @@ module GroundControl
     
     def run_unit_tests()
       
-      Open3.popen3("cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; bundle exec rake ci:setup:testunit test") do |input, output, err, thread| 
-        @output += output.read 
-        @output += err.read
+      Open3.popen3("cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; rvm reload; bundle exec rake ci:setup:testunit test") do |input, output, err, thread| 
+        command_output = output.read 
+        command_err = err.read
+        
+        @output += command_err
+        @output += command_output
+        
+        if !thread.value.success?
+          raise "Could not run unit tests: #{command_err} #{command_output}"
+        end
       end
       
     end
@@ -57,9 +64,16 @@ module GroundControl
       
       ENV['CUCUMBER_OPTS'] = "--format junit --out ../reports/features"
       
-      Open3.popen3("cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; bundle exec rake cucumber") do |input, output, err, thread| 
-        @output += output.read
-        @output += err.read
+      Open3.popen3("cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; rvm reload; bundle exec rake cucumber") do |input, output, err, thread| 
+        command_output = output.read 
+        command_err = err.read
+        
+        @output += command_err
+        @output += command_output
+        
+        if !thread.value.success?
+          raise "Could not run cucumber tests: #{command_err} #{command_output}"
+        end
       end
       
       Process.kill "TERM", screen_pid
@@ -86,8 +100,7 @@ module GroundControl
     end
 
     def clone_repository
-      grit = Grit::Git.new('/tmp/grit-fill')
-      grit.clone({:quiet => false, :verbose => true, :progress => true}, @git_url, @build_directory)
+      Git.clone(@git_url, @build_directory)
 
       @repository = Grit::Repo.new(@build_directory)
     end
