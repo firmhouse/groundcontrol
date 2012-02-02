@@ -43,18 +43,28 @@ module GroundControl
       end
     end
     
-    def run_unit_tests()
+    def run_functional_tests()
+      ENV['CI_REPORTS'] = File.join(@reports_directory, "testunit", "functionals")
       
-      Open3.popen3("cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; rvm reload; bundle exec rake ci:setup:testunit test") do |input, output, err, thread| 
+      Open3.popen3("cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; rvm reload; bundle exec rake ci:setup:testunit test:functionals") do |input, output, err, thread| 
         command_output = output.read 
         command_err = err.read
         
         @output += command_err
         @output += command_output
+      end
+      
+    end
+    
+    def run_unit_tests()
+      ENV['CI_REPORTS'] = File.join(@reports_directory, "testunit", "units")
+      
+      Open3.popen3("cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; rvm reload; bundle exec rake ci:setup:testunit test:units") do |input, output, err, thread| 
+        command_output = output.read 
+        command_err = err.read
         
-        if !thread.value.success?
-          raise "Could not run unit tests: #{command_err} #{command_output}"
-        end
+        @output += command_err
+        @output += command_output
       end
       
     end
@@ -70,30 +80,31 @@ module GroundControl
         
         @output += command_err
         @output += command_output
-        
-        if !thread.value.success?
-          raise "Could not run cucumber tests: #{command_err} #{command_output}"
-        end
       end
       
       Process.kill "TERM", screen_pid
     end
     
     def run_tests_and_report()
-      run_unit_tests()
-      run_cucumber_tests()
-      
       report = BuildReport.new(
         @project_name, 
         @repository.head.name, 
         @repository.commits.first)
+      
+      run_functional_tests()
+      run_unit_tests()
+      run_cucumber_tests()
         
       if File.exists?(File.join(@reports_directory, "features"))
-        report.test_results += TestResult.read_from_directory(File.join(@reports_directory, "features"))
+        report.test_results += TestResult.read_from_directory(File.join(@reports_directory, "features"), "cucumber")
       end
 
-      if File.exists?(File.join(@build_directory, "test", "reports"))
-        report.test_results += TestResult.read_from_directory(File.join(@build_directory, "test", "reports"))
+      if File.exists?(File.join(@reports_directory, "testunit", "functionals"))
+        report.test_results += TestResult.read_from_directory(File.join(@build_directory, "test", "reports"), "functionals")
+      end
+      
+      if File.exists?(File.join(@reports_directory, "testunit", "units"))
+        report.test_results += TestResult.read_from_directory(File.join(@build_directory, "test", "reports"), "units")
       end
       
       return report

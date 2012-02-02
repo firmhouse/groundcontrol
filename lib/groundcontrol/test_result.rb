@@ -4,9 +4,9 @@ module GroundControl
   
   class TestResult
     
-    attr_reader :name, :message
+    attr_reader :name, :message, :suite
     
-    def self.read_from_directory(path_to_tests)
+    def self.read_from_directory(path_to_tests, suite = nil)
       test_results_in_directory = []
       
       Dir.chdir(path_to_tests)
@@ -14,7 +14,7 @@ module GroundControl
         f = File.open(File.join(path_to_tests, file))
         doc = Nokogiri::XML(f)
         f.close()
-        test_results_in_directory += read_tests_from_xml_document(doc)
+        test_results_in_directory += read_tests_from_xml_document(doc, suite = nil)
       end
       
       return test_results_in_directory
@@ -26,15 +26,15 @@ module GroundControl
       return read_tests_from_xml_document(doc)
     end
     
-    def self.read_tests_from_xml_document(doc)
+    def self.read_tests_from_xml_document(doc, suite = nil)
       tests = []
       
       doc.xpath('//testcase').each do |testcase|
         failure = testcase.xpath('//failure')
         if failure.empty?
-          tests << TestResult.new(testcase['name'])
+          tests << TestResult.new(testcase['name'], suite)
         else
-          tests << TestResult.new(testcase['name'], failure.first.content)
+          tests << TestResult.new(testcase['name'], suite, failure.first.content)
         end
       end
       
@@ -42,9 +42,10 @@ module GroundControl
       return tests
     end
     
-    def initialize(name, failure_message = nil)
-      @name = name      
+    def initialize(name, suite = nil, failure_message = nil)
+      @name = name
       @failed = false
+      @suite = suite
       
       if failure_message
         @failed = true
@@ -57,7 +58,7 @@ module GroundControl
     end
     
     def success?
-      return true if not @failed
+      !failed?
     end
     
   end
