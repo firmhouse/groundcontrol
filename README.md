@@ -2,6 +2,9 @@
 
 GroundControl is a test runner / builder for your Rails apps.
 
+This thing is far from done yet and at the moment it is a mish mash of just hacking, trying things out and writing tested code. If you have any feedback, please
+*file an issue*.
+
 ## Usage / Hacking
 
 If you want to try GroundControl or see how it works. This is what you'll need to do:

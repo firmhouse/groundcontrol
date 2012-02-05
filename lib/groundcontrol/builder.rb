@@ -46,7 +46,11 @@ module GroundControl
     def run_functional_tests()
       ENV['CI_REPORTS'] = File.join(@reports_directory, "testunit", "functionals")
       
-      Open3.popen3("cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; rvm reload; bundle exec rake ci:setup:testunit test:functionals") do |input, output, err, thread| 
+      puts "-- FUNCTIONALS -> #{ENV['CI_REPORTS']}"
+      
+            
+      Open3.popen3("bash -l -c \"cd #{@build_directory}; source .rvmrc; bundle exec rake ci:setup:testunit test:functionals\"") do |input, output, err, thread| 
+        puts output.read
         command_output = output.read 
         command_err = err.read
         
@@ -59,7 +63,10 @@ module GroundControl
     def run_unit_tests()
       ENV['CI_REPORTS'] = File.join(@reports_directory, "testunit", "units")
       
-      Open3.popen3("cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; rvm reload; bundle exec rake ci:setup:testunit test:units") do |input, output, err, thread| 
+      puts "-- UNITS => #{ENV['CI_REPORTS']}"
+      
+      Open3.popen3("bash -l -c \"cd #{@build_directory}; source .rvmrc; bundle exec rake ci:setup:testunit test:units\"") do |input, output, err, thread| 
+        puts output.read
         command_output = output.read 
         command_err = err.read
         
@@ -74,7 +81,10 @@ module GroundControl
       
       ENV['CUCUMBER_OPTS'] = "--format junit --out ../reports/features"
       
-      Open3.popen3("cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; rvm reload; bundle exec rake cucumber") do |input, output, err, thread| 
+      puts "-- CUCUMBER"
+      
+      Open3.popen3("bash -l -c \"cd #{@build_directory}; source .rvmrc; bundle exec rake cucumber\"") do |input, output, err, thread| 
+        puts output.read
         command_output = output.read 
         command_err = err.read
         
@@ -98,19 +108,21 @@ module GroundControl
       if File.exists?(File.join(@reports_directory, "features"))
         report.test_results += TestResult.read_from_directory(File.join(@reports_directory, "features"), "cucumber")
       end
-
+  
       if File.exists?(File.join(@reports_directory, "testunit", "functionals"))
-        report.test_results += TestResult.read_from_directory(File.join(@build_directory, "test", "reports"), "functionals")
+        report.test_results += TestResult.read_from_directory(File.join(@reports_directory, "testunit", "functionals"), "functionals")
       end
       
       if File.exists?(File.join(@reports_directory, "testunit", "units"))
-        report.test_results += TestResult.read_from_directory(File.join(@build_directory, "test", "reports"), "units")
+        report.test_results += TestResult.read_from_directory(File.join(@reports_directory, "testunit", "units"), "units")
       end
       
       return report
     end
 
     def clone_repository
+      ENV['GIT_SSH'] = File.join(@workspace, 'ssh-wrapper')
+      
       Git.clone(@git_url, @build_directory)
 
       @repository = Grit::Repo.new(@build_directory)
@@ -122,14 +134,24 @@ module GroundControl
       FileUtils.mkdir_p(@workspace)
       FileUtils.mkdir_p(@build_directory)
       FileUtils.mkdir_p(@reports_directory)
+      
+      File.open("#{@workspace}/ssh-key", 'w') { |f| f.write(@config['private_key'])}
+      
+      ssh_wrapper = <<EOW
+#!/bin/sh
+ssh -o 'IdentityFile #{File.join(@workspace, "ssh-key")}' $*
+EOW
+
+      File.open("#{@workspace}/ssh-wrapper", 'w') { |f| f.write(ssh_wrapper) }
+      FileUtils.chmod(0755, File.join(@workspace, "ssh-wrapper"))
     end
 
     def initialize_rvm
-      IO.popen("cd #{@build_directory}; rvm rvmrc trust #{@build_directory}") { |io| @output += io.read }
+      # IO.popen("cd #{@build_directory}; rvm rvmrc trust #{@build_directory}") { |io| @output += io.read }
     end
 
     def install_bundler_gems()
-      IO.popen("cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; bundle install --without production", "r") { |io| @output += io.read }
+      IO.popen("bash -l -c \"cd #{@build_directory}; source .rvmrc; bundle install --without production\"") { |io| puts io.read }
     end
 
     def inject_database_config()
@@ -153,7 +175,7 @@ EOF
     end
 
     def load_empty_schema()
-      IO.popen("cd #{@build_directory}; rvm rvmrc load; source \"$HOME/.rvm/scripts/rvm\"; bundle exec rake db:schema:load") { |io| @output += io.read }
+      IO.popen("bash -l -c \"cd #{@build_directory}; source .rvmrc; bundle exec rake db:schema:load\"") { |io| puts io.read }
     end
 
     def setup_database()
