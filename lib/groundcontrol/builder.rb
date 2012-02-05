@@ -103,11 +103,11 @@ module GroundControl
       
       run_functional_tests()
       run_unit_tests()
-      run_cucumber_tests()
+      #run_cucumber_tests()
         
-      if File.exists?(File.join(@reports_directory, "features"))
-        report.test_results += TestResult.read_from_directory(File.join(@reports_directory, "features"), "cucumber")
-      end
+      #if File.exists?(File.join(@reports_directory, "features"))
+        #report.test_results += TestResult.read_from_directory(File.join(@reports_directory, "features"), "cucumber")
+      #end
   
       if File.exists?(File.join(@reports_directory, "testunit", "functionals"))
         report.test_results += TestResult.read_from_directory(File.join(@reports_directory, "testunit", "functionals"), "functionals")
