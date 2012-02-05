@@ -136,6 +136,7 @@ module GroundControl
       FileUtils.mkdir_p(@reports_directory)
       
       File.open("#{@workspace}/ssh-key", 'w') { |f| f.write(@config['private_key'])}
+      FileUtils.chmod(0600, File.join(@workspace, "ssh-key"))
       
       ssh_wrapper = <<EOW
 #!/bin/sh
@@ -143,7 +144,7 @@ ssh -o 'IdentityFile #{File.join(@workspace, "ssh-key")}' $*
 EOW
 
       File.open("#{@workspace}/ssh-wrapper", 'w') { |f| f.write(ssh_wrapper) }
-      FileUtils.chmod(0755, File.join(@workspace, "ssh-wrapper"))
+      FileUtils.chmod(0700, File.join(@workspace, "ssh-wrapper"))
     end
 
     def initialize_rvm
